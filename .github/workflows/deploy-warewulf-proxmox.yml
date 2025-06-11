@@ -1,0 +1,32 @@
+name: Build & Push Proxmox Warewulf Image
+
+on:
+  push:
+    branches:
+      - deploy      # Only runs when you push to the "deploy" branch
+  workflow_dispatch: # Allows manual trigger in the Actions UI
+
+env:
+  DOCKER_REPO: rkhoja/warewulf-proxmox
+  TAG_NAME: ${{ github.ref_name }}
+
+jobs:
+  build-and-push:
+    name: Build & Push Proxmox Node Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛠️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐳 Build Docker Image
+        run: |
+          docker build -t $DOCKER_REPO:$TAG_NAME .
+
+      - name: 🚀 Login to DockerHub
+        run: |
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USER }}" --password-stdin
+
+      - name: 🚀 Push Image to DockerHub
+        run: |
+          docker push $DOCKER_REPO:$TAG_NAME
