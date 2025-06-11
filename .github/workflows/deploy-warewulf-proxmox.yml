@@ -3,7 +3,7 @@ name: Build & Push Proxmox Warewulf Image
 on:
   push:
     branches:
-      - deploy      # Only runs when you push to the "deploy" branch
+      - latest
   workflow_dispatch: # Allows manual trigger in the Actions UI
 
 env:
