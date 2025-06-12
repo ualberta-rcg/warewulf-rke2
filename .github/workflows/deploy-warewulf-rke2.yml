@@ -1,4 +1,4 @@
-name: Build & Push Proxmox Warewulf Image
+name: Build & Push RKE2 Warewulf Image
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch: # Allows manual trigger in the Actions UI
 
 env:
-  DOCKER_REPO: rkhoja/warewulf-proxmox
+  DOCKER_REPO: rkhoja/warewulf-rke2
   TAG_NAME: ${{ github.ref_name }}
 
 jobs:
