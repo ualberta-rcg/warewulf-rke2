@@ -1,17 +1,6 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV SYSTEMD_IGNORE_ERRORS=1
-
-# Temporarily disable service configuration
-RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
-
-# Create fake systemctl for environments without systemd
-RUN mkdir -p /tmp/bin && \
-    cp /usr/bin/systemctl /usr/bin/systemctl.bak && \
-    echo '#!/bin/sh\nexit 0' > /tmp/bin/systemctl && \
-    chmod +x /tmp/bin/systemctl && \
-    ln -sf /tmp/bin/systemctl /usr/bin/systemctl
 
 # --- 0. Set root user ---
 USER root
@@ -84,6 +73,18 @@ RUN groupadd wwgroup && \
     useradd -m -d /local/home/wwuser -g slurm -s /bin/bash wwuser && \
     echo "wwuser:wwpassword" | chpasswd && \
     usermod -aG sudo wwuser
+
+ENV SYSTEMD_IGNORE_ERRORS=1
+
+# Temporarily disable service configuration
+RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
+
+# Create fake systemctl for environments without systemd
+RUN mkdir -p /tmp/bin && \
+    cp /usr/bin/systemctl /usr/bin/systemctl.bak && \
+    echo '#!/bin/sh\nexit 0' > /tmp/bin/systemctl && \
+    chmod +x /tmp/bin/systemctl && \
+    ln -sf /tmp/bin/systemctl /usr/bin/systemctl
 
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
