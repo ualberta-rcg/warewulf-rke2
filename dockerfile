@@ -73,8 +73,6 @@ RUN groupadd wwgroup && \
     useradd -m -d /local/home/wwuser -g sudo -s /bin/bash wwuser && \
     echo "wwuser:wwpassword" | chpasswd 
 
-ENV SYSTEMD_IGNORE_ERRORS=1
-
 # Temporarily disable service configuration
 RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
 
@@ -113,9 +111,14 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
 # --- 5. Install RKE2 (server mode) ---
 RUN curl -sfL https://get.rke2.io | sh 
 
-# --- 6. Create RKE2 config directory ---
-RUN mkdir -p /etc/rancher/rke2/ && \
-    systemctl enable rke2-server.service
+# --- Patch for kubectl, systemd unit, and audit logs ---
+ENV PATH="/var/lib/rancher/rke2/bin:${PATH}"
+
+RUN mkdir -p /etc/systemd/system && \
+    mkdir -p /etc/rancher/rke2/ && \
+    cp /usr/local/lib/systemd/system/rke2-server.service /etc/systemd/system/ && \
+    ln -s /etc/systemd/system/rke2-server.service /etc/systemd/system/multi-user.target.wants/rke2-server.service && \
+    mkdir -p /var/log/audit
 
 # --- 7. Create sysctl config for K8s networking ---
 RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
