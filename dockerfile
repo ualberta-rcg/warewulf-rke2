@@ -1,6 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV SYSTEMD_IGNORE_ERRORS=1
 
 # --- 0. Set root user ---
 USER root
