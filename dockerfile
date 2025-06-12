@@ -40,7 +40,8 @@ RUN apt-get update && apt-get install -y \
     linux-image-generic \
     linux-headers-generic \
     openscap-scanner \
-    libopenscap8 \
+    libopenscap25t64 \
+    openscap-common \
     socat \
     conntrack \
     ebtables \
