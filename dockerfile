@@ -3,6 +3,16 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SYSTEMD_IGNORE_ERRORS=1
 
+# Temporarily disable service configuration
+RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
+
+# Create fake systemctl for environments without systemd
+RUN mkdir -p /tmp/bin && \
+    cp /usr/bin/systemctl /usr/bin/systemctl.bak && \
+    echo '#!/bin/sh\nexit 0' > /tmp/bin/systemctl && \
+    chmod +x /tmp/bin/systemctl && \
+    ln -sf /tmp/bin/systemctl /usr/bin/systemctl
+
 # --- 0. Set root user ---
 USER root
 
@@ -31,6 +41,7 @@ RUN apt-get update && apt-get install -y \
     lm-sensors \
     python3 \
     python3-pip \
+    netplan.io \
     unzip \
     gnupg \
     ansible \
@@ -55,7 +66,6 @@ RUN apt-get update && apt-get install -y \
     lsof \
     jq \
     bash-completion \
-    ceph-common \
     open-iscsi \
     bpfcc-tools \
     cgroup-tools \
@@ -69,6 +79,11 @@ RUN apt-get update && apt-get install -y \
 
 # --- 2. Set root password ---
 RUN echo "root:changeme" | chpasswd
+
+RUN groupadd wwgroup && \
+    useradd -m -d /local/home/wwuser -g slurm -s /bin/bash wwuser && \
+    echo "wwuser:wwpassword" | chpasswd && \
+    usermod -aG sudo wwuser
 
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
@@ -96,17 +111,34 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
     rm -rf /var/lib/apt/lists/*
 
 # --- 5. Install RKE2 (server mode) ---
-RUN curl -sfL https://get.rke2.io | sh && \
-    systemctl enable rke2-server.service
+RUN curl -sfL https://get.rke2.io | sh 
 
 # --- 6. Create RKE2 config directory ---
-RUN mkdir -p /etc/rancher/rke2/
+RUN mkdir -p /etc/rancher/rke2/ && \
+    systemctl enable rke2-server.service
 
 # --- 7. Create sysctl config for K8s networking ---
 RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
     echo 'net.bridge.bridge-nf-call-ip6tables=1' >> /etc/sysctl.d/k8s.conf && \
     echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.d/k8s.conf && \
     sysctl --system || true
+
+# Enable root autologin on tty1
+RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
+    echo '[Service]' > /etc/systemd/system/getty@tty1.service.d/override.conf && \
+    echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf && \
+    echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf
+
+RUN apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /usr/src/* /var/lib/apt/lists/* /tmp/* \
+           /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
+           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d /usr/src/* 
+
+# Remove fake systemctl after use
+RUN rm -f /usr/bin/systemctl && \
+    rm -rf /tmp/bin && \
+    cp /usr/bin/systemctl.bak /usr/bin/systemctl
 
 # --- 8. Rebuild initramfs (for PXE or WW images) ---
 RUN update-initramfs -u
