@@ -70,9 +70,8 @@ RUN apt-get update && apt-get install -y \
 RUN echo "root:changeme" | chpasswd
 
 RUN groupadd wwgroup && \
-    useradd -m -d /local/home/wwuser -g slurm -s /bin/bash wwuser && \
-    echo "wwuser:wwpassword" | chpasswd && \
-    usermod -aG sudo wwuser
+    useradd -m -d /local/home/wwuser -g sudo -s /bin/bash wwuser && \
+    echo "wwuser:wwpassword" | chpasswd 
 
 ENV SYSTEMD_IGNORE_ERRORS=1
 
