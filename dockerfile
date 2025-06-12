@@ -105,7 +105,7 @@ RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/c
 
 # --- 4. Clean up SCAP content and scanner ---
 RUN rm -rf /usr/share/xml/scap/ssg/content && \
-    apt remove -y openscap-scanner libopenscap8 && \
+    apt remove -y openscap-scanner libopenscap25t64 && \
     apt autoremove -y && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
