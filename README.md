@@ -2,7 +2,7 @@
 
 # RKE2 Node Image for Warewulf
 
-[![CI/CD](https://github.com/ualberta-rcg/rkhoja/warewulf-rke2/actions/workflows/deploy-warewulf-rke2.yml/badge.svg)](https://github.com/ualberta-rcg/rkhoja/warewulf-rke2/actions/workflows/deploy-warewulf-rke2.yml)
+[![CI/CD](https://github.com/ualberta-rcg/warewulf-rke2/actions/workflows/deploy-warewulf-rke2.yml/badge.svg)](https://github.com/ualberta-rcg/warewulf-rke2/actions/workflows/deploy-warewulf-rke2.yml)
 ![Docker Pulls](https://img.shields.io/docker/pulls/rkhoja/warewulf-rke2?style=flat-square)
 ![Docker Image Size](https://img.shields.io/docker/image-size/rkhoja/warewulf-rke2/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
