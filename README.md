@@ -33,6 +33,8 @@ This container includes:
 * Systemd-based boot compatible with Warewulf PXE deployments
 * `changeme` root password (you should change this in production)
 
+**RKE2 Kubernetes** ([docs](https://docs.rke2.io/)) (server mode, installed via official Rancher script)
+
 All major Kubernetes dependencies (e.g., socat, conntrack, iptables, etc.) are preinstalled, and the RKE2 unit is enabled on boot.
 
 ## 🛠️ GitHub Actions - CI/CD Pipeline
@@ -58,12 +60,6 @@ To enable pushing to your Docker Hub:
 
 ### 🚀 Manual Trigger & Auto-Build
 
-* Manual: Run the workflow from the **Actions** tab with **Run workflow** (enabled via `workflow_dispatch`).
-* Automatic: The CI/CD workflow is triggered when you create a **Pull Request that merges `main` into `latest`** using the GitHub UI.
-* **Recommended branching model:**
-
-  * Work and test in `main`
-  * Create a PR from `main` to `latest` to deploy and tag to Docker Hub automatically
 * Manual: Run the workflow from the **Actions** tab with **Run workflow** (enabled via `workflow_dispatch`).
 * Automatic: Any push to the `latest` branch triggers the CI/CD pipeline.
 * **Recommended branching model:**
@@ -93,6 +89,8 @@ wwctl configure -a
 ```
 
 Finally boot the nodes via PXE.
+
+RKE2 will auto-start via systemd and begin initializing the cluster once networking is available.
 
 ## 🤝 Support
 
