@@ -2,6 +2,11 @@
 
 # RKE2 Node Image for Warewulf
 
+[![Build & Push RKE2 Image](https://github.com/rkhoja/warewulf-rke2/actions/workflows/deploy-warewulf-rke2.yml/badge.svg?branch=latest)](https://github.com/rkhoja/warewulf-rke2/actions)
+![Docker Pulls](https://img.shields.io/docker/pulls/rkhoja/warewulf-rke2?style=flat-square)
+![Docker Image Size](https://img.shields.io/docker/image-size/rkhoja/warewulf-rke2/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+
 **Maintained by:** Rahim Khoja ([khoja1@ualberta.ca](mailto:khoja1@ualberta.ca)) & Karim Ali ([kali2@ualberta.ca](mailto:kali2@ualberta.ca))
 
 ## 🧰 Description
