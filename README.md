@@ -62,9 +62,9 @@ To enable pushing to your Docker Hub:
 
 * Manual: Run the workflow from the **Actions** tab with **Run workflow** (enabled via `workflow_dispatch`).
 * Automatic: Any push to the `latest` branch triggers the CI/CD pipeline.
-* **Recommended branching model:**
 
-  * Work in `main`
+* **Recommended branching model:**
+  * Work and test in `main`
   * Merge or fast-forward `main` to `latest` to trigger a production build
 
 ```bash
