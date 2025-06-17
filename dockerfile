@@ -62,8 +62,17 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     software-properties-common \
     gnupg-agent \
+    ignition \
+    sgdisk \
+    dracut \
+    systemd \
+    rsyslog \
+    logrotate \
+    systemd-journal-remote \
     ca-certificates && \
     apt-get clean && \
+    mkdir -p /var/log/journal && \
+    systemd-tmpfiles --create --prefix /var/log/journal && \
     rm -rf /var/lib/apt/lists/*
 
 # --- 2. Set root password ---
