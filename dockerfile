@@ -54,6 +54,10 @@ RUN apt-get update && apt-get install -y \
     strace \
     lsof \
     jq \
+    git \
+    iputils-ping \
+    gnupg \
+    lsb-release \
     bash-completion \
     open-iscsi \
     bpfcc-tools \
@@ -83,6 +87,12 @@ RUN groupadd wwgroup && \
 
 # Temporarily disable service configuration
 RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
+
+# Install Helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh && \
+    rm -f get_helm.sh
 
 # Create fake systemctl for environments without systemd
 RUN mkdir -p /tmp/bin && \
