@@ -74,7 +74,20 @@ RUN apt-get update && apt-get install -y \
     systemd-journal-remote \
     ca-certificates && \
     mkdir -p /var/log/journal && \
-    systemd-tmpfiles --create --prefix /var/log/journal
+    systemd-tmpfiles --create --prefix /var/log/journal && \
+    systemctl mask \
+    systemd-udevd.service \
+    systemd-udevd-kernel.socket \
+    systemd-udevd-control.socket \
+    systemd-modules-load.service \
+    sys-kernel-config.mount \
+    sys-kernel-debug.mount \
+    sys-fs-fuse-connections.mount \
+    systemd-remount-fs.service \
+    getty.target \
+    systemd-logind.service \
+    systemd-vconsole-setup.service \
+    systemd-timesyncd.service
 
 # --- 2. Set root password ---
 RUN echo "root:changeme" | chpasswd
@@ -85,7 +98,15 @@ RUN groupadd -g 1001 wwgroup && \
     usermod -aG sudo wwuser
 
 # Temporarily disable service configuration
-RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
+RUN printf '#!/bin/bash\n\
+    if [ "$1" = "enable" ] || [ "$1" = "disable" ] || [ "$1" = "mask" ] || [ "$1" = "unmask" ]; then\n\
+        systemctl --no-reload "$@"\n\
+    elif [ "$1" = "start" ] || [ "$1" = "stop" ] || [ "$1" = "restart" ]; then\n\
+        echo "Service operation $1 skipped during build"\n\
+        exit 0\n\
+    else\n\
+        systemctl "$@"\n\
+    fi\n' > /usr/local/bin/systemctl-build
 
 # Install Helm
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
@@ -134,9 +155,15 @@ ENV PATH="/var/lib/rancher/rke2/bin:${PATH}"
 
 RUN mkdir -p /etc/systemd/system && \
     mkdir -p /etc/rancher/rke2/ && \
-    cp /usr/local/lib/systemd/system/rke2-server.service /etc/systemd/system/ && \
-    ln -s /etc/systemd/system/rke2-server.service /etc/systemd/system/multi-user.target.wants/rke2-server.service && \
     mkdir -p /var/log/audit
+
+RUN systemctl enable \
+    ssh.service \
+    chronyd.service \
+    auditd.service \
+    rsyslog.service \
+    cron.service \
+    rke2-server.service
 
 # --- 7. Create sysctl config for K8s networking ---
 RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
@@ -155,11 +182,6 @@ RUN apt-get autoremove -y && \
     rm -rf /usr/src/* /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
            /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d /usr/src/* 
-
-# Remove fake systemctl after use
-RUN rm -f /usr/bin/systemctl && \
-    rm -rf /tmp/bin && \
-    cp /usr/bin/systemctl.bak /usr/bin/systemctl
 
 # --- 8. Rebuild initramfs (for PXE or WW images) ---
 RUN update-initramfs -u
