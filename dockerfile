@@ -111,6 +111,7 @@ RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/c
     rm -f /ssg.zip && \
     SCAP_GUIDE=$(find /usr/share/xml/scap/ssg/content -name "ssg-ubuntu*-ds.xml" | sort | tail -n1) && \
     echo "📘 Found SCAP guide: $SCAP_GUIDE" && \
+    apt-get update && \
     oscap xccdf eval \
         --remediate \
         --profile xccdf_org.ssgproject.content_profile_cis_level2_server \
