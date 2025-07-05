@@ -185,6 +185,21 @@ RUN apt-get autoremove -y && \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
            /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
 
+# Unmask services before final cleanup
+RUN systemctl unmask \
+    systemd-udevd.service \
+    systemd-udevd-kernel.socket \
+    systemd-udevd-control.socket \
+    systemd-modules-load.service \
+    sys-kernel-config.mount \
+    sys-kernel-debug.mount \
+    sys-fs-fuse-connections.mount \
+    systemd-remount-fs.service \
+    getty.target \
+    systemd-logind.service \
+    systemd-vconsole-setup.service \
+    systemd-timesyncd.service
+
 # --- 8. Rebuild initramfs (for PXE or WW images) ---
 RUN update-initramfs -u
 
