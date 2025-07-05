@@ -114,12 +114,10 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master
     ./get_helm.sh && \
     rm -f get_helm.sh
 
-# Create fake systemctl for environments without systemd
-RUN mkdir -p /tmp/bin && \
-    cp /usr/bin/systemctl /usr/bin/systemctl.bak && \
-    echo '#!/bin/sh\nexit 0' > /tmp/bin/systemctl && \
-    chmod +x /tmp/bin/systemctl && \
-    ln -sf /tmp/bin/systemctl /usr/bin/systemctl
+# Back up and replace systemctl during build
+RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
+    chmod +x /usr/local/bin/systemctl-build && \
+    ln -sf /usr/local/bin/systemctl-build /usr/bin/systemctl
 
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
@@ -177,11 +175,15 @@ RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
     echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf
 
+# Restore original systemctl for runtime
 RUN apt-get autoremove -y && \
     apt-get clean && \
-    rm -rf /usr/src/* /var/lib/apt/lists/* /tmp/* \
+    rm -f /usr/bin/systemctl && \
+    mv /usr/bin/systemctl.orig /usr/bin/systemctl && \
+    rm -f /usr/local/bin/systemctl-build && \
+    rm -rf /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
-           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d /usr/src/* 
+           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
 
 # --- 8. Rebuild initramfs (for PXE or WW images) ---
 RUN update-initramfs -u
