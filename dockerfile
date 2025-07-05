@@ -81,7 +81,8 @@ RUN echo "root:changeme" | chpasswd
 
 RUN groupadd -g 1001 wwgroup && \
     useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -s /bin/bash wwuser && \
-    echo "wwuser:wwpassword" | chpasswd
+    echo "wwuser:wwpassword" | chpasswd && \
+    usermod -aG sudo wwuser
 
 # Temporarily disable service configuration
 RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
