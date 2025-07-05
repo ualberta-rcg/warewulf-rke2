@@ -73,17 +73,15 @@ RUN apt-get update && apt-get install -y \
     logrotate \
     systemd-journal-remote \
     ca-certificates && \
-    apt-get clean && \
     mkdir -p /var/log/journal && \
-    systemd-tmpfiles --create --prefix /var/log/journal && \
-    rm -rf /var/lib/apt/lists/*
+    systemd-tmpfiles --create --prefix /var/log/journal
 
 # --- 2. Set root password ---
 RUN echo "root:changeme" | chpasswd
 
-RUN groupadd wwgroup && \
-    useradd -m -d /local/home/wwuser -g sudo -s /bin/bash wwuser && \
-    echo "wwuser:wwpassword" | chpasswd 
+RUN groupadd -g 1001 wwgroup && \
+    useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -s /bin/bash wwuser && \
+    echo "wwuser:wwpassword" | chpasswd
 
 # Temporarily disable service configuration
 RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
@@ -111,6 +109,7 @@ RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/c
     rm -f /ssg.zip && \
     SCAP_GUIDE=$(find /usr/share/xml/scap/ssg/content -name "ssg-ubuntu*-ds.xml" | sort | tail -n1) && \
     echo "📘 Found SCAP guide: $SCAP_GUIDE" && \
+    apt-get update && \
     oscap xccdf eval \
         --remediate \
         --profile xccdf_org.ssgproject.content_profile_cis_level2_server \
