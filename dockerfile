@@ -97,17 +97,6 @@ RUN groupadd -g 1001 wwgroup && \
     echo "wwuser:wwpassword" | chpasswd && \
     usermod -aG sudo wwuser
 
-# Temporarily disable service configuration
-RUN printf '#!/bin/bash\n\
-    if [ "$1" = "enable" ] || [ "$1" = "disable" ] || [ "$1" = "mask" ] || [ "$1" = "unmask" ]; then\n\
-        systemctl --no-reload "$@"\n\
-    elif [ "$1" = "start" ] || [ "$1" = "stop" ] || [ "$1" = "restart" ]; then\n\
-        echo "Service operation $1 skipped during build"\n\
-        exit 0\n\
-    else\n\
-        systemctl "$@"\n\
-    fi\n' > /usr/local/bin/systemctl-build
-
 # Install Helm
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 get_helm.sh && \
@@ -139,11 +128,6 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt autoremove -y && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Back up and replace systemctl during build
-RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
-    chmod +x /usr/local/bin/systemctl-build && \
-    ln -sf /usr/local/bin/systemctl-build /usr/bin/systemctl
 
 # --- 5. Install RKE2 (server mode) ---
 RUN curl -sfL https://get.rke2.io | sh 
@@ -178,9 +162,6 @@ RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
 # Restore original systemctl for runtime
 RUN apt-get autoremove -y && \
     apt-get clean && \
-    rm -f /usr/bin/systemctl && \
-    mv /usr/bin/systemctl.orig /usr/bin/systemctl && \
-    rm -f /usr/local/bin/systemctl-build && \
     rm -rf /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
            /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
