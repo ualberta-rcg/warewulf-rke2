@@ -114,11 +114,6 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master
     ./get_helm.sh && \
     rm -f get_helm.sh
 
-# Back up and replace systemctl during build
-RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
-    chmod +x /usr/local/bin/systemctl-build && \
-    ln -sf /usr/local/bin/systemctl-build /usr/bin/systemctl
-
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
     echo "🔄 Using SCAP Security Guide version: $SSG_VERSION" && \
@@ -144,6 +139,11 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt autoremove -y && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Back up and replace systemctl during build
+RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
+    chmod +x /usr/local/bin/systemctl-build && \
+    ln -sf /usr/local/bin/systemctl-build /usr/bin/systemctl
 
 # --- 5. Install RKE2 (server mode) ---
 RUN curl -sfL https://get.rke2.io | sh 
