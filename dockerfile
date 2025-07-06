@@ -127,7 +127,14 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master
     rm -f get_helm.sh
 
 # --- 5. Install RKE2 (server mode) ---
-RUN curl -sfL https://get.rke2.io | sh 
+RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
+    printf '#!/bin/bash\n\
+    echo "⚠️  Fake systemctl: $@" >&2\n\
+    exit 0\n' > /usr/bin/systemctl && \
+    chmod +x /usr/bin/systemctl && \
+    curl -sfL https://get.rke2.io | sh && \
+    rm -f /usr/bin/systemctl && \
+    mv /usr/bin/systemctl.orig /usr/bin/systemctl
 
 # --- Patch for kubectl, systemd unit, and audit logs ---
 ENV PATH="/var/lib/rancher/rke2/bin:${PATH}"
