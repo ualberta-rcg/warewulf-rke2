@@ -93,26 +93,8 @@ RUN apt-get update && apt-get install -y \
 RUN echo "root:changeme" | chpasswd
 
 RUN groupadd -g 1001 wwgroup && \
-    useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -s /bin/bash wwuser && \
-    echo "wwuser:wwpassword" | chpasswd && \
-    usermod -aG sudo wwuser
-
-# Temporarily disable service configuration
-RUN printf '#!/bin/bash\n\
-    if [ "$1" = "enable" ] || [ "$1" = "disable" ] || [ "$1" = "mask" ] || [ "$1" = "unmask" ]; then\n\
-        systemctl --no-reload "$@"\n\
-    elif [ "$1" = "start" ] || [ "$1" = "stop" ] || [ "$1" = "restart" ]; then\n\
-        echo "Service operation $1 skipped during build"\n\
-        exit 0\n\
-    else\n\
-        systemctl "$@"\n\
-    fi\n' > /usr/local/bin/systemctl-build
-
-# Install Helm
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
-    chmod 700 get_helm.sh && \
-    ./get_helm.sh && \
-    rm -f get_helm.sh
+    useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -G sudo -s /bin/bash wwuser && \
+    echo "wwuser:wwpassword" | chpasswd
 
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
@@ -136,14 +118,13 @@ RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/c
 # --- 4. Clean up SCAP content and scanner ---
 RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt remove -y openscap-scanner libopenscap25t64 && \
-    apt autoremove -y && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt autoremove -y 
 
-# Back up and replace systemctl during build
-RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
-    chmod +x /usr/local/bin/systemctl-build && \
-    ln -sf /usr/local/bin/systemctl-build /usr/bin/systemctl
+# Install Helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh && \
+    rm -f get_helm.sh
 
 # --- 5. Install RKE2 (server mode) ---
 RUN curl -sfL https://get.rke2.io | sh 
@@ -178,9 +159,6 @@ RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
 # Restore original systemctl for runtime
 RUN apt-get autoremove -y && \
     apt-get clean && \
-    rm -f /usr/bin/systemctl && \
-    mv /usr/bin/systemctl.orig /usr/bin/systemctl && \
-    rm -f /usr/local/bin/systemctl-build && \
     rm -rf /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
            /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
