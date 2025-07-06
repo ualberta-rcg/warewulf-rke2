@@ -93,15 +93,8 @@ RUN apt-get update && apt-get install -y \
 RUN echo "root:changeme" | chpasswd
 
 RUN groupadd -g 1001 wwgroup && \
-    useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -s /bin/bash wwuser && \
-    echo "wwuser:wwpassword" | chpasswd && \
-    usermod -aG sudo wwuser
-
-# Install Helm
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
-    chmod 700 get_helm.sh && \
-    ./get_helm.sh && \
-    rm -f get_helm.sh
+    useradd -u 1001 -m -d /local/home/wwuser -g wwgroup -G sudo -s /bin/bash wwuser && \
+    echo "wwuser:wwpassword" | chpasswd
 
 # --- 3. Fetch and Apply SCAP Security Guide Remediation ---
 RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/content/releases/latest | grep -oP '"tag_name": "\K[^"]+' || echo "0.1.66") && \
@@ -125,9 +118,13 @@ RUN export SSG_VERSION=$(curl -s https://api.github.com/repos/ComplianceAsCode/c
 # --- 4. Clean up SCAP content and scanner ---
 RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt remove -y openscap-scanner libopenscap25t64 && \
-    apt autoremove -y && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt autoremove -y 
+
+# Install Helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh && \
+    rm -f get_helm.sh
 
 # --- 5. Install RKE2 (server mode) ---
 RUN curl -sfL https://get.rke2.io | sh 
