@@ -145,7 +145,6 @@ RUN mkdir -p /etc/systemd/system && \
 
 RUN systemctl enable \
     ssh.service \
-    chronyd.service \
     auditd.service \
     rsyslog.service \
     cron.service \
