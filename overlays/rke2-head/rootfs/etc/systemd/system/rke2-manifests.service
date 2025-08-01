@@ -1,0 +1,14 @@
+[Unit]
+Description=Copy custom Rancher manifests to RKE2
+After=rke2-server.service
+Wants=rke2-server.service
+ConditionPathExists=/etc/rancher/manifests
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+
+ExecStart=/bin/sh -c 'useradd etcd; cp -f /etc/rancher/manifests/* /var/lib/rancher/rke2/server/manifests/ 2>/dev/null || true'
+
+[Install]
+WantedBy=multi-user.target

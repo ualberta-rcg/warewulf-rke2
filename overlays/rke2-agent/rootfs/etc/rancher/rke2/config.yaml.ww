@@ -1,0 +1,14 @@
+{{- $serverIp := "" -}}
+{{- range $node := .AllNodes -}}
+  {{- range $profile := $node.Profiles -}}
+    {{- if and (eq $profile "rke2-head") (eq (index $node.Tags "token") (index $.Tags "token")) -}}
+      {{- range $devname, $netdev := $node.NetDevs -}}
+        {{- if and $netdev.Ipaddr (eq $serverIp "") -}}
+          {{- $serverIp = printf "%s" $netdev.Ipaddr -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+server: https://{{- $serverIp -}}:9345
+token: {{ index .Tags "token" }}

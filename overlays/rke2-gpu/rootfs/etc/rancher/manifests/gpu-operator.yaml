@@ -1,0 +1,29 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: gpu-operator
+  namespace: kube-system
+spec:
+  targetNamespace: gpu-operator
+  createNamespace: true
+  chart: gpu-operator
+  repo: https://nvidia.github.io/gpu-operator
+  set:
+    driver.enabled: "true"
+    toolkit.enabled: "true"
+    devicePlugin.enabled: "true"
+    dcgm.enabled: "true"
+    nfd.enabled: "true"
+    gfd.enabled: "true"
+    devicePlugin.runtimeClassName: ""
+  valuesContent: |-
+    toolkit:
+      env:
+        - name: CONTAINERD_CONFIG
+          value: /var/lib/rancher/rke2/agent/etc/containerd/config.toml
+        - name: CONTAINERD_SOCKET
+          value: /run/k3s/containerd/containerd.sock
+        - name: CONTAINERD_RUNTIME_CLASS
+          value: nvidia
+        - name: CONTAINERD_SET_AS_DEFAULT
+          value: "true"
