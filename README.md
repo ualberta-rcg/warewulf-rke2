@@ -42,7 +42,51 @@ This container includes:
 
 All major Kubernetes dependencies (e.g., socat, conntrack, iptables, etc.) are preinstalled, and the RKE2 unit is enabled on boot.
 
-## Warewulf Configuration
+## 🛠️ GitHub Actions - CI/CD Pipeline
+
+This project includes a GitHub Actions workflow: `.github/workflows/deploy-warewulf-rke2.yml`.
+
+### 🔄 What It Does
+
+* Builds the Docker image from the `Dockerfile`
+* Logs into Docker Hub using stored GitHub Secrets
+* Pushes the image tagged as the current branch (usually `latest`)
+
+### ✅ Setting Up GitHub Secrets
+
+To enable pushing to your Docker Hub:
+
+1. Go to your fork's GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+2. Add the following:
+
+   * `DOCKER_HUB_REPO` → your Docker Hub repo. In this case: *rkhoja/warewulf-rke2* 
+   * `DOCKER_HUB_USER` → your Docker Hub username
+   * `DOCKER_HUB_TOKEN` → create a [Docker Hub access token](https://hub.docker.com/settings/security)
+
+### 🚀 Manual Trigger & Auto-Build
+
+* Manual: Run the workflow from the **Actions** tab with **Run workflow** (enabled via `workflow_dispatch`).
+* Automatic: Any push to the `latest` branch triggers the CI/CD pipeline.
+
+* **Recommended branching model:**
+  * Work and test in `main`
+  * Merge or fast-forward `main` to `latest` to trigger a production build
+
+```bash
+git checkout latest
+git merge main
+git push origin latest
+```
+
+## 🧪 How To Use This Image with Warewulf 4
+
+Once you have Warewulf 4 setup on your control node:
+
+```bash
+wwctl image import --build --force docker://rkhoja/warewulf-rke2:latest rke2
+```
+
+### Warewulf Configuration
 
 Warewulf overlays included are examples. It assumes only one IP for each node. Profiles were configured in warewulf as follows:
 
@@ -51,7 +95,7 @@ Warewulf overlays included are examples. It assumes only one IP for each node. P
     image name: rke2
     ipxe template: default
     system overlay:
-      - (... add any other overlays needed here ...)
+      # (... add any other overlays needed here ...)
       - rke2
     network devices:
       default:
@@ -118,61 +162,6 @@ Nodes were then configured as follows
     tags:
       token: example_token
 ```
-
-## 🛠️ GitHub Actions - CI/CD Pipeline
-
-This project includes a GitHub Actions workflow: `.github/workflows/deploy-warewulf-rke2.yml`.
-
-### 🔄 What It Does
-
-* Builds the Docker image from the `Dockerfile`
-* Logs into Docker Hub using stored GitHub Secrets
-* Pushes the image tagged as the current branch (usually `latest`)
-
-### ✅ Setting Up GitHub Secrets
-
-To enable pushing to your Docker Hub:
-
-1. Go to your fork's GitHub repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add the following:
-
-   * `DOCKER_HUB_REPO` → your Docker Hub repo. In this case: *rkhoja/warewulf-rke2* 
-   * `DOCKER_HUB_USER` → your Docker Hub username
-   * `DOCKER_HUB_TOKEN` → create a [Docker Hub access token](https://hub.docker.com/settings/security)
-
-### 🚀 Manual Trigger & Auto-Build
-
-* Manual: Run the workflow from the **Actions** tab with **Run workflow** (enabled via `workflow_dispatch`).
-* Automatic: Any push to the `latest` branch triggers the CI/CD pipeline.
-
-* **Recommended branching model:**
-  * Work and test in `main`
-  * Merge or fast-forward `main` to `latest` to trigger a production build
-
-```bash
-git checkout latest
-git merge main
-git push origin latest
-```
-
-## 🧪 How To Use This Image with Warewulf 4
-
-Once you have Warewulf 4 setup on your control node:
-
-```bash
-warewulf import docker rkhoja/warewulf-rke2:latest --name=rke2-node
-```
-
-Then assign the image to a compute node:
-
-```bash
-wwctl node set n00[1-4] --container=rke2-node
-wwctl configure -a
-```
-
-Finally boot the nodes via PXE.
-
-RKE2 will auto-start via systemd and begin initializing the cluster once networking is available.
 
 ## 🤝 Support
 
