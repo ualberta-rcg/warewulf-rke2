@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     pciutils \
     lvm2 \
-    multipath-tools \
     ifupdown \
     curl \
     wget \
@@ -57,7 +56,6 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     bash-completion \
-    open-iscsi \
     bpfcc-tools \
     cgroup-tools \
     auditd \
@@ -131,6 +129,7 @@ RUN apt-get update && apt-get install -y \
     ipvsadm \
     nftables \
     wireguard-tools \
+    multipath-tools \
     kexec-tools \
     parted \
     aide \
@@ -176,6 +175,17 @@ RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
     echo 'net.bridge.bridge-nf-call-ip6tables=1' >> /etc/sysctl.d/k8s.conf && \
     echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.d/k8s.conf && \
     sysctl --system || true
+
+# --- Pre-load kernel modules needed at boot ---
+RUN cat <<'EOF' > /etc/modules-load.d/k8s.conf
+br_netfilter
+overlay
+ip_vs
+ip_vs_rr
+ip_vs_wrr
+ip_vs_sh
+nf_conntrack
+EOF
 
 # Enable root autologin on tty1
 RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
