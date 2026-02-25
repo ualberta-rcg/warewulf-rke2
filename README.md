@@ -83,19 +83,85 @@ git push origin latest
 Once you have Warewulf 4 setup on your control node:
 
 ```bash
-warewulf import docker rkhoja/warewulf-rke2:latest --name=rke2-node
+wwctl image import --build --force docker://rkhoja/warewulf-rke2:latest rke2
 ```
 
-Then assign the image to a compute node:
+### Warewulf Configuration
+
+Warewulf overlays included are examples. It assumes only one IP for each node. Profiles were configured in warewulf as follows:
 
 ```bash
-wwctl node set n00[1-4] --container=rke2-node
-wwctl configure -a
+  rke2:
+    image name: rke2
+    ipxe template: default
+    system overlay:
+      # (... add any other overlays needed here ...)
+      - rke2
+    network devices:
+      default:
+        type: ethernet
+        device: eth0
+        # Add other network definitions here
+  rke2-disk:
+    disks:
+      /dev/sda:
+        wipe_table: true
+        partitions:
+          rancher:
+            number: "1"
+            size_mib: "800000"  # Half of the disk
+            should_exist: true
+          kubelet:
+            number: "2"
+            size_mib: "800000"
+            should_exist: true
+    filesystems:
+      /dev/disk/by-partlabel/kubelet:
+        format: ext4
+        path: /var/lib/kubelet
+        wipe_filesystem: true
+      /dev/disk/by-partlabel/rancher:
+        format: ext4
+        path: /var/lib/rancher
+        wipe_filesystem: true
+  rke2-agent:
+    system overlay:
+      - rke2-agent
+  rke2-gpu:
+    system overlay:
+      - rke2-gpu
+  rke2-head:
+    system overlay:
+      - rke2-head
+  rke2-worker:
+    system overlay:
+      - rke2-worker
 ```
 
-Finally boot the nodes via PXE.
+Nodes were then configured as follows
 
-RKE2 will auto-start via systemd and begin initializing the cluster once networking is available.
+```bash
+  rke2-head:
+    profiles:
+      - rke2
+      - rke2-head
+      - rke2-gpu
+    tags:
+      token: example_token
+  rke2-server-1:
+    profiles:
+      - rke2
+      - rke2-server
+    tags:
+      token: example_token
+  rke2-agent-1:
+    profiles:
+      - rke2
+      - rke2-agent
+      - rke2-disk
+    tags:
+      token: example_token
+```
 
 ## 🤝 Support
 

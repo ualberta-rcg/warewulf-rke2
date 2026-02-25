@@ -13,10 +13,7 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     pciutils \
     lvm2 \
-    nfs-common \
-    multipath-tools \
     ifupdown \
-    rsync \
     curl \
     wget \
     vim \
@@ -59,7 +56,6 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     bash-completion \
-    open-iscsi \
     bpfcc-tools \
     cgroup-tools \
     auditd \
@@ -120,13 +116,34 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt remove -y openscap-scanner libopenscap25t64 && \
     apt autoremove -y 
 
-# Install Helm
+# --- 5a. Install packages after CIS + additional K8s node packages ---
+RUN apt-get update && apt-get install -y \
+    nfs-common \
+    rpcbind \
+    open-iscsi \
+    rsync \
+    xfsprogs \
+    cryptsetup \
+    nvme-cli \
+    sg3-utils \
+    ipvsadm \
+    nftables \
+    wireguard-tools \
+    multipath-tools \
+    kexec-tools \
+    parted \
+    aide \
+    libpam-pwquality \
+    fio \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- 5b. Install Helm
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 get_helm.sh && \
     ./get_helm.sh && \
     rm -f get_helm.sh
 
-# --- 5. Install RKE2 (server mode) ---
+# --- 5c. Install RKE2 (server mode) ---
 RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
     printf '#!/bin/bash\n\
     echo "⚠️  Fake systemctl: $@" >&2\n\
@@ -148,6 +165,9 @@ RUN systemctl enable \
     auditd.service \
     rsyslog.service \
     cron.service \
+    chrony.service \
+    rpcbind.service \
+    iscsid.service \
     rke2-server.service
 
 # --- 7. Create sysctl config for K8s networking ---
@@ -156,18 +176,44 @@ RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
     echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.d/k8s.conf && \
     sysctl --system || true
 
+# --- Pre-load kernel modules needed at boot ---
+RUN cat <<'EOF' > /etc/modules-load.d/k8s.conf
+br_netfilter
+overlay
+ip_vs
+ip_vs_rr
+ip_vs_wrr
+ip_vs_sh
+nf_conntrack
+EOF
+
 # Enable root autologin on tty1
 RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
     echo '[Service]' > /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf
 
-# Restore original systemctl for runtime
+# --- Ensure runtime dirs exist on boot ---
+RUN cat <<'EOF' > /etc/systemd/system/ww-runtime-dirs.service
+[Unit]
+Description=Create runtime directories for K8s
+Before=rke2-server.service
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "mkdir -p /var/log/pods /var/log/containers /var/log/audit /var/log/journal /var/log/chrony /run/rke2"
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable ww-runtime-dirs.service
+
+# Cleanup for clean Warewulf boot
 RUN apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
-           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
+           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d && \
+    mkdir -p /var/log/journal /var/log/audit /var/log/pods /var/log/containers
 
 # Unmask services before final cleanup
 RUN systemctl unmask \

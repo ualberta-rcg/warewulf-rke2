@@ -1,0 +1,21 @@
+{{- $serverIp := "" -}}
+{{- range $devname, $netdev := $.NetDevs -}}
+  {{- if and $netdev.Ipaddr (eq $serverIp "") -}}
+    {{- $serverIp = printf "%s" $netdev.Ipaddr -}}
+  {{- end -}}
+{{- end -}}
+write-kubeconfig-mode: "0644"
+tls-san:
+  - {{ $serverIp }}
+{{- range $node := .AllNodes -}}
+  {{- if eq (index $.Tags "token") (index $node.Tags "token") -}}
+    {{- range $profile := $node.Profiles -}}
+      {{- if or (eq $profile "rke2-server") (eq $profile "rke2-agent") -}}
+        {{ range $devname, $netdev := $node.NetDevs }}
+  - {{ $netdev.Ipaddr }}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{ end }}
+token: {{ index .Tags "token" }}
