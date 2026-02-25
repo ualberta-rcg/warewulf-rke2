@@ -157,8 +157,20 @@ RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
 ENV PATH="/var/lib/rancher/rke2/bin:${PATH}"
 
 RUN mkdir -p /etc/systemd/system && \
-    mkdir -p /etc/rancher/rke2/ && \
-    mkdir -p /var/log/audit
+    mkdir -p /etc/rancher/rke2/ 
+
+# --- Ensure runtime dirs exist on boot ---
+RUN cat <<'EOF' > /etc/systemd/system/ww-runtime-dirs.service
+[Unit]
+Description=Create runtime directories for K8s
+Before=rke2-server.service
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "mkdir -p /var/log/pods /var/log/containers /var/log/audit /var/log/journal /var/log/chrony /run/rke2"
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EOF
 
 RUN systemctl enable \
     ssh.service \
@@ -168,7 +180,8 @@ RUN systemctl enable \
     chrony.service \
     rpcbind.service \
     iscsid.service \
-    rke2-server.service
+    rke2-server.service \
+    ww-runtime-dirs.service
 
 # --- 7. Create sysctl config for K8s networking ---
 RUN echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/k8s.conf && \
@@ -192,20 +205,6 @@ RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
     echo '[Service]' > /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf
-
-# --- Ensure runtime dirs exist on boot ---
-RUN cat <<'EOF' > /etc/systemd/system/ww-runtime-dirs.service
-[Unit]
-Description=Create runtime directories for K8s
-Before=rke2-server.service
-[Service]
-Type=oneshot
-ExecStart=/bin/bash -c "mkdir -p /var/log/pods /var/log/containers /var/log/audit /var/log/journal /var/log/chrony /run/rke2"
-RemainAfterExit=yes
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable ww-runtime-dirs.service
 
 # Cleanup for clean Warewulf boot
 RUN apt-get autoremove -y && \
