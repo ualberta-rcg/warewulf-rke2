@@ -193,12 +193,27 @@ RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
     echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf && \
     echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf
 
-# Restore original systemctl for runtime
+# --- Ensure runtime dirs exist on boot ---
+RUN cat <<'EOF' > /etc/systemd/system/ww-runtime-dirs.service
+[Unit]
+Description=Create runtime directories for K8s
+Before=rke2-server.service
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "mkdir -p /var/log/pods /var/log/containers /var/log/audit /var/log/journal /var/log/chrony /run/rke2"
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable ww-runtime-dirs.service
+
+# Cleanup for clean Warewulf boot
 RUN apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* \
            /var/tmp/* /var/log/* /usr/share/doc /usr/share/man \
-           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d 
+           /usr/share/locale /usr/share/info /usr/sbin/policy-rc.d && \
+    mkdir -p /var/log/journal /var/log/audit /var/log/pods /var/log/containers
 
 # Unmask services before final cleanup
 RUN systemctl unmask \
