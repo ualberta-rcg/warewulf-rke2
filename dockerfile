@@ -13,10 +13,8 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     pciutils \
     lvm2 \
-    nfs-common \
     multipath-tools \
     ifupdown \
-    rsync \
     curl \
     wget \
     vim \
@@ -120,13 +118,33 @@ RUN rm -rf /usr/share/xml/scap/ssg/content && \
     apt remove -y openscap-scanner libopenscap25t64 && \
     apt autoremove -y 
 
-# Install Helm
+# --- 5a. Install packages after CIS + additional K8s node packages ---
+RUN apt-get update && apt-get install -y \
+    nfs-common \
+    rpcbind \
+    open-iscsi \
+    rsync \
+    xfsprogs \
+    cryptsetup \
+    nvme-cli \
+    sg3-utils \
+    ipvsadm \
+    nftables \
+    wireguard-tools \
+    kexec-tools \
+    parted \
+    aide \
+    libpam-pwquality \
+    fio \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- 5b. Install Helm
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
     chmod 700 get_helm.sh && \
     ./get_helm.sh && \
     rm -f get_helm.sh
 
-# --- 5. Install RKE2 (server mode) ---
+# --- 5c. Install RKE2 (server mode) ---
 RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
     printf '#!/bin/bash\n\
     echo "⚠️  Fake systemctl: $@" >&2\n\
@@ -148,6 +166,9 @@ RUN systemctl enable \
     auditd.service \
     rsyslog.service \
     cron.service \
+    chrony.service \
+    rpcbind.service \
+    iscsid.service \
     rke2-server.service
 
 # --- 7. Create sysctl config for K8s networking ---
